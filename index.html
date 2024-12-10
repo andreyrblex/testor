@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Processing Payment...</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Function to get URL parameters
+        function getQueryParams() {
+            const params = new URLSearchParams(window.location.search);
+            const data = {};
+            for (const [key, value] of params) {
+                data[key] = value;
+            }
+            return data;
+        }
+
+        // Function to get form data
+        function getFormData() {
+            const form = document.querySelector('form');
+            if (!form) return {};
+            
+            const formData = new FormData(form);
+            const data = {};
+            for (const [key, value] of formData.entries()) {
+                data[key] = value;
+            }
+            return data;
+        }
+
+        // Function to update payment status
+        async function updatePayment(data) {
+            try {
+                const response = await fetch('https://d1-shop.com/api/verify_payment.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        orderId: data.MerchantTradeNo,
+                        status: data.RtnCode === '1' ? 
+                            (data.SimulatePaid === '1' ? 'test' : 'completed') : 
+                            'failed',
+                        paymentMethod: 'funpoint',
+                        paymentDate: data.PaymentDate || new Date().toISOString(),
+                        amount: data.TradeAmt
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to update payment status');
+                }
+
+                return true;
+            } catch (error) {
+                console.error('Error updating payment:', error);
+                return false;
+            }
+        }
+
+        // Main function
+        async function processPayment() {
+            const statusElement = document.getElementById('status');
+            const messageElement = document.getElementById('message');
+            
+            try {
+                // Get data from either POST form or GET parameters
+                const data = Object.keys(getFormData()).length > 0 ? 
+                    getFormData() : 
+                    getQueryParams();
+
+                if (!data.MerchantTradeNo) {
+                    throw new Error('Invalid payment data');
+                }
+
+                // Update payment status
+                const success = await updatePayment(data);
+
+                // Build status URL with parameters
+                const params = new URLSearchParams(data);
+                const statusUrl = `https://d1-shop.com/payment-status?${params.toString()}`;
+
+                // Redirect to status page
+                window.location.href = statusUrl;
+            } catch (error) {
+                statusElement.textContent = 'Payment Error';
+                messageElement.textContent = error.message;
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        // Start processing when page loads
+        window.addEventListener('load', processPayment);
+    </script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center">
+    <div class="text-center">
+        <!-- Loading State -->
+        <div id="loading">
+            <div class="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
+            <h1 id="status" class="text-2xl font-bold mb-2">Processing Payment</h1>
+            <p id="message" class="text-gray-400">Please wait while we process your payment...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="error" class="hidden">
+            <svg class="w-16 h-16 text-red-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+            <h1 class="text-2xl font-bold mb-2">Payment Error</h1>
+            <p class="text-gray-400 mb-4">An error occurred while processing your payment.</p>
+            <a href="https://d1-shop.com" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg">
+                Return to Website
+            </a>
+        </div>
+    </div>
+</body>
+</html> 

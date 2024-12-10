@@ -1,0 +1,13 @@
+{
+  "name": "funpoint-callback",
+  "version": "1.0.0",
+  "description": "Callback handler for FunPoint payments",
+  "main": "index.html",
+  "scripts": {
+    "start": "serve .",
+    "dev": "serve ."
+  },
+  "dependencies": {
+    "serve": "^14.2.1"
+  }
+} 
